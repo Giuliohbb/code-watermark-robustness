@@ -1,0 +1,58 @@
+# Pilot: 20 HumanEval+ tasks x 3 samples x 4 conditions = 240 solutions.
+# Checks the pipeline end to end and measures time and memory on one GPU
+# before the full run. Run with:  cwm run configs/pilot.yaml
+run_name: pilot
+output_dir: runs
+dataset: humaneval
+task_limit: 20
+task_selection_seed: 0
+
+model:
+  name: Qwen/Qwen2.5-Coder-7B-Instruct
+  revision: null          # pin a commit hash before the final run
+  dtype: bfloat16
+  device: cuda
+
+generation:
+  n_samples: 3
+  max_new_tokens: 1024
+  temperature: 1.0
+  top_k: 50               # same sampling as the STONE paper
+  top_p: 1.0
+  seed: 1234
+
+watermark:
+  gamma: 0.5
+  delta: 1.0              # same strength for every method
+  hash_key: 15485863      # key used by the official STONE code
+  sweet_entropy_threshold: 0.9
+  stone_syntax_rule: official
+  stone_candidate: argmax
+  stone_denominator: paper
+
+conditions: [unwatermarked, kgw, sweet, stone]
+detectors: [kgw, ewd, sweet, stone]   # ewd re-scores the KGW generations
+
+transforms:
+  # maintenance: what any code goes through
+  - name: black
+  - name: strip_comments
+  # attacks: edits meant to remove the watermark
+  - name: rename
+    fraction: 0.5
+  - name: rename
+    fraction: 1.0
+  - name: dead_code
+    n_insertions: 3
+  - name: minify
+transform_seed: 7
+
+detection:
+  device: cuda
+  use_prompt_context: true
+  save_token_details: true
+
+evaluation:
+  fpr_targets: [0.01, 0.05]
+  negatives: [human, unwatermarked]
+  functional_workers: 8

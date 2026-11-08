@@ -1,0 +1,55 @@
+# Final run: all 164 HumanEval+ tasks. Adjust n_samples from the pilot's timings.
+# Run with:  cwm run configs/humaneval_full.yaml
+run_name: humaneval_full
+output_dir: runs
+dataset: humaneval
+task_limit: null
+
+model:
+  name: Qwen/Qwen2.5-Coder-7B-Instruct
+  revision: null          # pin the same commit hash as the pilot
+  dtype: bfloat16
+  device: cuda
+
+generation:
+  n_samples: 5
+  max_new_tokens: 1024
+  temperature: 1.0
+  top_k: 50
+  top_p: 1.0
+  seed: 1234
+
+watermark:
+  gamma: 0.5
+  delta: 1.0
+  hash_key: 15485863
+  sweet_entropy_threshold: 0.9
+  stone_syntax_rule: official
+  stone_candidate: argmax
+  stone_denominator: paper
+
+conditions: [unwatermarked, kgw, sweet, stone]
+detectors: [kgw, ewd, sweet, stone]
+
+transforms:
+  - name: black
+  - name: strip_comments
+  - name: rename
+    fraction: 0.5
+  - name: rename
+    fraction: 1.0
+  - name: dead_code
+    n_insertions: 3
+  - name: minify
+transform_seed: 7
+
+detection:
+  device: cuda
+  use_prompt_context: true
+  save_token_details: true
+
+evaluation:
+  fpr_targets: [0.01, 0.05]
+  negatives: [human, unwatermarked]
+  functional_workers: 8
+  bootstrap_samples: 1000
