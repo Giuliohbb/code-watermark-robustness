@@ -1,5 +1,7 @@
 # Code Watermark Robustness
 
+**English** | [Português](README.pt-BR.md)
+
 **How long does an LLM code watermark survive once the code is edited?**
 
 Watermarks for LLM-generated code bias token sampling so that a secret key can later
@@ -73,6 +75,7 @@ cwm report     configs/pilot.yaml
 ```
 
 The report lands in `runs/<run_name>/report/` as CSV tables, `report.md` and figures.
+To run on a Slurm cluster with one GPU, see [scripts/slurm/README.md](scripts/slurm/README.md).
 
 ## Repository layout
 
