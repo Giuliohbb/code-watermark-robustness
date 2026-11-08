@@ -63,11 +63,15 @@ class WatermarkFactory:
     def syntax_mask(self) -> torch.Tensor:
         if self._syntax_mask is None:
             self._syntax_mask = build_syntax_mask(
-                lambda i: self.tokenizer.decode([i], skip_special_tokens=True),
-                self.vocab_size,
-                self.settings.stone_syntax_rule,
+                self._decode_one, self.vocab_size, self.settings.stone_syntax_rule
             )
         return self._syntax_mask
+
+    def _decode_one(self, token_id: int) -> str:
+        # The output layer is usually padded beyond the tokenizer's vocabulary.
+        if token_id >= len(self.tokenizer):
+            return ""
+        return self.tokenizer.decode([token_id], skip_special_tokens=True)
 
     def processor(self, condition: str) -> LogitsProcessor | None:
         s = self.settings
