@@ -36,13 +36,13 @@ behaves the same.
 
 ```mermaid
 flowchart LR
-    A[HumanEval+ tasks] --> B[generate<br/>Qwen2.5-Coder-7B-Instruct<br/>4 conditions]
-    A --> H[human reference solutions]
-    B --> C[transform<br/>6 edits per sample]
+    A["HumanEval+ tasks"] --> B["generate<br/>Qwen2.5-Coder-7B-Instruct<br/>4 conditions"]
+    A --> H["human reference solutions"]
+    B --> C["transform<br/>6 edits per sample"]
     H --> C
-    C --> D[functional<br/>EvalPlus tests]
-    C --> E[detect<br/>KGW · EWD · SWEET · STONE]
-    D --> F[report<br/>pass@1 · AUROC · TPR@FPR · z retention<br/>signal by lexical category]
+    C --> D["functional<br/>EvalPlus tests"]
+    C --> E["detect<br/>KGW, EWD, SWEET, STONE"]
+    D --> F["report<br/>pass@1, AUROC, TPR at fixed FPR,<br/>z retention, signal by category"]
     E --> F
 ```
 
