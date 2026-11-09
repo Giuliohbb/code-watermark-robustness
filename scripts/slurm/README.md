@@ -1,19 +1,18 @@
 # Running on a Slurm cluster (one 24 GB GPU)
 
-One job at a time, up to 2 days, 1x RTX 4090. The job runs inside the lab's
-PyTorch container; `job.sh` creates a venv on top of it, installs the project,
-downloads the model into `~/dados/hf` and runs the pipeline. Everything is
-idempotent, so a job restarted after a reboot resumes where it stopped.
+The pipeline needs one GPU with 24 GB (an RTX 4090 is enough: the 7B model takes
+about 15 GB in bf16, without quantization). `job.sh` creates a venv on top of an
+existing CUDA PyTorch, installs the project, downloads the model and runs the
+pipeline. Every step is idempotent, so a requeued job resumes where it stopped.
 
 ```bash
-# on the access machine
-ssh <login>@<cluster>
+# on the login node
 git clone https://github.com/Giuliohbb/code-watermark-robustness ~/code-watermark-robustness
-mkdir -p ~/runs ~/dados
-sbatch ~/code-watermark-robustness/scripts/slurm/pilot.sbatch
+cd ~ && mkdir -p runs
+sbatch -p <partition> -A <account> code-watermark-robustness/scripts/slurm/run.sbatch
 
 squeue -u $USER                    # PD = waiting, R = running
-tail -f ~/runs/cwm-pilot-<JOBID>.out
+tail -f runs/cwm-<JOBID>.out
 ```
 
 Results: `~/runs/cwm/pilot/report/report.md`.
@@ -21,9 +20,22 @@ Results: `~/runs/cwm/pilot/report/report.md`.
 Other configs use the same script, e.g. the full run:
 
 ```bash
-sbatch --job-name=cwm-full --time=12:00:00 --export=ALL,CONFIG_NAME=humaneval_full \
-  ~/code-watermark-robustness/scripts/slurm/pilot.sbatch
+CONFIG_NAME=humaneval_full sbatch -p <partition> -A <account> --time=12:00:00 \
+  code-watermark-robustness/scripts/slurm/run.sbatch
+```
+
+## Cluster-specific settings
+
+Anything specific to your cluster goes in `~/.cwm-slurm.env` (outside the repo),
+which `run.sbatch` and `prefetch.sh` read if it exists:
+
+```bash
+CONTAINER_IMAGE=/path/to/pytorch-image.sqsh   # optional: run inside a Pyxis/enroot container
+CONTAINER_MOUNTS="$HOME:$HOME"                 # optional: extra mounts for the container
+STEP_GRES=gpu:1                                # optional: GPU request repeated on the srun step
+HF_HOME=$HOME/.cache/huggingface               # optional: model cache on fast storage
 ```
 
 If the log says the job has no internet access and the model is missing, run
-`bash scripts/slurm/prefetch.sh` on the access machine and submit again.
+`bash code-watermark-robustness/scripts/slurm/prefetch.sh` on the login node and
+submit again.

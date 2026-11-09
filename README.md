@@ -75,7 +75,7 @@ cwm report     configs/pilot.yaml
 ```
 
 The report lands in `runs/<run_name>/report/` as CSV tables, `report.md` and figures.
-To run on a Slurm cluster with one GPU, see [scripts/slurm/README.md](scripts/slurm/README.md).
+To run on a Slurm cluster with one 24 GB GPU (e.g. an RTX 4090), see [scripts/slurm/README.md](scripts/slurm/README.md).
 
 ## Repository layout
 

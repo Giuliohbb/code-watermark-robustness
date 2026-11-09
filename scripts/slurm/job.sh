@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Runs one experiment inside the cluster PyTorch container. Safe to re-run: the
-# environment is reused, downloads are skipped when cached, and every pipeline
-# stage resumes from what is already on disk (the lab restarts jobs from scratch
-# if a machine reboots).
+# Runs one experiment in an environment where `python` has CUDA PyTorch (a
+# PyTorch container or a module). Safe to re-run: the venv is reused, downloads
+# are skipped when cached, and every pipeline stage resumes from what is already
+# on disk, so a requeued job continues where it stopped.
 #
 # Usage (from a job):  bash scripts/slurm/job.sh <config-name>   e.g. pilot
 set -euo pipefail
@@ -10,11 +10,11 @@ set -euo pipefail
 CONFIG_NAME="${1:?usage: job.sh <config-name>}"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CONFIG="${REPO_DIR}/configs/${CONFIG_NAME}.yaml"
-VENV="${HOME}/venvs/cwm"
-OUTPUT_DIR="${HOME}/runs/cwm"
+VENV="${CWM_VENV:-${HOME}/venvs/cwm}"
+OUTPUT_DIR="${CWM_OUTPUT_DIR:-${HOME}/runs/cwm}"
 
-# Model weights are read constantly, so they live in ~/dados (see the lab manual).
-export HF_HOME="${HOME}/dados/hf"
+# Put the model cache on fast storage if the cluster has it.
+export HF_HOME="${HF_HOME:-${HOME}/.cache/huggingface}"
 export TOKENIZERS_PARALLELISM=false
 export PYTHONUNBUFFERED=1
 
@@ -50,7 +50,7 @@ STAMP="${VENV}/.installed-$(git -C "${REPO_DIR}" rev-parse --short HEAD 2>/dev/n
 if [[ ! -f "${STAMP}" ]]; then
   if [[ "${ONLINE}" == 0 ]]; then
     echo "The project is not installed and pip cannot reach PyPI from this job."
-    echo "Send the log to the group: jobs need internet once to install dependencies."
+    echo "Jobs need internet once to install dependencies (or pre-build the venv on the login node)."
     exit 4
   fi
   log "installing the project"
@@ -78,7 +78,7 @@ try:
 except Exception as error:  # noqa: BLE001
     print(f"\nDownload failed: {error}\n"
           "If jobs have no internet access, run scripts/slurm/prefetch.sh on the "
-          "access machine first (see scripts/slurm/README.md).")
+          "login node first (see scripts/slurm/README.md).")
     sys.exit(3)
 PY
 export HF_HUB_OFFLINE=1
