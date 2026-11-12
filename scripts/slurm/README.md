@@ -27,13 +27,14 @@ CONFIG_NAME=humaneval_full sbatch -p <partition> -A <account> --time=12:00:00 \
 ## Cluster-specific settings
 
 Anything specific to your cluster goes in `~/.cwm-slurm.env` (outside the repo),
-which `run.sbatch` and `prefetch.sh` read if it exists:
+which `run.sbatch` and `prefetch.sh` read if it exists and export to the job:
 
 ```bash
 CONTAINER_IMAGE=/path/to/pytorch-image.sqsh   # optional: run inside a Pyxis/enroot container
 CONTAINER_MOUNTS="$HOME:$HOME"                 # optional: extra mounts for the container
 STEP_GRES=gpu:1                                # optional: GPU request repeated on the srun step
 HF_HOME=$HOME/.cache/huggingface               # optional: model cache on fast storage
+PATH=/usr/bin:/bin                             # optional: if the cluster requires a fixed PATH in jobs
 ```
 
 If the log says the job has no internet access and the model is missing, run

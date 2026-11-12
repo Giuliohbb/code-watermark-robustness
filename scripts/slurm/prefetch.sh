@@ -5,7 +5,7 @@
 set -euo pipefail
 ENV_FILE="${CWM_ENV_FILE:-$HOME/.cwm-slurm.env}"
 # shellcheck disable=SC1090
-[[ -f "$ENV_FILE" ]] && source "$ENV_FILE"
+if [[ -f "$ENV_FILE" ]]; then set -a; source "$ENV_FILE"; set +a; fi  # exported to the job
 export HF_HOME="${HF_HOME:-${HOME}/.cache/huggingface}"
 MODEL="${1:-Qwen/Qwen2.5-Coder-7B-Instruct}"
 python3 -m pip install --user --quiet "huggingface_hub>=0.23" "evalplus>=0.3.1"

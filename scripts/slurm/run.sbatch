@@ -21,7 +21,7 @@ set -euo pipefail
 
 ENV_FILE="${CWM_ENV_FILE:-$HOME/.cwm-slurm.env}"
 # shellcheck disable=SC1090
-[[ -f "$ENV_FILE" ]] && source "$ENV_FILE"
+if [[ -f "$ENV_FILE" ]]; then set -a; source "$ENV_FILE"; set +a; fi  # exported to the job
 
 CONFIG_NAME="${CONFIG_NAME:-pilot}"
 REPO="${CWM_REPO:-$HOME/code-watermark-robustness}"
