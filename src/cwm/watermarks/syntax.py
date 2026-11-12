@@ -74,7 +74,9 @@ def build_syntax_mask(
     the embedding matrix) decode to ``""`` and are treated as non-syntactic, as in the
     official code; the model never produces them in practice.
     """
-    mask = torch.zeros(vocab_size, dtype=torch.bool)
-    for token_id in range(vocab_size):
-        mask[token_id] = is_syntax_token(decode(token_id), rule)
-    return mask
+    return syntax_mask_from_texts([decode(token_id) for token_id in range(vocab_size)], rule)
+
+
+def syntax_mask_from_texts(texts: list[str], rule: SyntaxRule = "official") -> torch.Tensor:
+    """Boolean mask from the decoded text of every vocabulary entry, in id order."""
+    return torch.tensor([is_syntax_token(text, rule) for text in texts], dtype=torch.bool)

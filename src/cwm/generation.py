@@ -159,6 +159,10 @@ def run_generation(config: ExperimentConfig, model: Any, tokenizer: Any) -> None
         config.watermark, tokenizer, int(model.config.vocab_size), model=model
     )
     jobs = [(t, c) for t in tasks for c in config.conditions if (t.task_id, c) not in done]
+    if any(c == "stone" for _, c in jobs):
+        start = time.perf_counter()
+        n_syntax = int(factory.syntax_mask.sum())
+        print(f"STONE syntax mask: {n_syntax} syntax tokens ({time.perf_counter() - start:.1f}s)")
     if torch.cuda.is_available():
         torch.cuda.reset_peak_memory_stats()
 

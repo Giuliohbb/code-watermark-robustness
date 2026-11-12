@@ -109,7 +109,9 @@ class STONEProcessor(GreenListProcessor):
             candidates = torch.multinomial(probs, num_samples=1).squeeze(-1)
         else:
             raise ValueError(f"Unknown STONE candidate rule: {self.candidate!r}")
-        is_syntax = self.syntax_mask.to(scores.device)[candidates]
+        if self.syntax_mask.device != scores.device:
+            self.syntax_mask = self.syntax_mask.to(scores.device)  # moved once, not per step
+        is_syntax = self.syntax_mask[candidates]
         return ~is_syntax
 
 

@@ -19,7 +19,7 @@ from cwm.watermarks.methods import (
     SWEETDetector,
     SWEETProcessor,
 )
-from cwm.watermarks.syntax import build_syntax_mask, is_syntax_token
+from cwm.watermarks.syntax import build_syntax_mask, is_syntax_token, syntax_mask_from_texts
 
 __all__ = [
     "DetectionResult",
@@ -36,6 +36,7 @@ __all__ = [
     "WatermarkFactory",
     "build_syntax_mask",
     "is_syntax_token",
+    "syntax_mask_from_texts",
     "z_score",
 ]
 
@@ -62,16 +63,23 @@ class WatermarkFactory:
     @property
     def syntax_mask(self) -> torch.Tensor:
         if self._syntax_mask is None:
-            self._syntax_mask = build_syntax_mask(
-                self._decode_one, self.vocab_size, self.settings.stone_syntax_rule
+            self._syntax_mask = syntax_mask_from_texts(
+                self._decode_vocabulary(), self.settings.stone_syntax_rule
             )
         return self._syntax_mask
 
-    def _decode_one(self, token_id: int) -> str:
-        # The output layer is usually padded beyond the tokenizer's vocabulary.
-        if token_id >= len(self.tokenizer):
-            return ""
-        return self.tokenizer.decode([token_id], skip_special_tokens=True)
+    def _decode_vocabulary(self) -> list[str]:
+        """Text of every id of the output layer, decoded in one batch.
+
+        The output layer is usually padded beyond the tokenizer's vocabulary; those ids
+        decode to ``""``. ``len(tokenizer)`` is read once: on some tokenizers it rebuilds
+        the whole vocabulary on every call.
+        """
+        known = min(len(self.tokenizer), self.vocab_size)
+        texts = self.tokenizer.batch_decode(
+            [[token_id] for token_id in range(known)], skip_special_tokens=True
+        )
+        return list(texts) + [""] * (self.vocab_size - known)
 
     def processor(self, condition: str) -> LogitsProcessor | None:
         s = self.settings
