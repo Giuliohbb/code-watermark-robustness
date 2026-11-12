@@ -40,12 +40,26 @@ else
 fi
 
 # 1. Environment: a venv on top of the container's PyTorch (never reinstalls torch).
-if [[ ! -x "${VENV}/bin/python" ]]; then
+#    Some images ship Python without ensurepip, so the venv is created without pip
+#    and uses the image's pip through --system-site-packages. If the image has no
+#    pip at all, pip is bootstrapped with get-pip.py.
+if [[ ! -f "${VENV}/bin/activate" ]]; then
   log "creating venv at ${VENV}"
-  python -m venv --system-site-packages "${VENV}"
+  [[ -n "${VENV}" && "${VENV}" != "/" ]] && rm -rf "${VENV}"  # clears a half-created venv
+  python -m venv --system-site-packages --without-pip "${VENV}"
 fi
 # shellcheck disable=SC1091
 source "${VENV}/bin/activate"
+if ! python -m pip --version >/dev/null 2>&1; then
+  if [[ "${ONLINE}" == 0 ]]; then
+    echo "No pip available and no internet access to bootstrap it."
+    exit 4
+  fi
+  log "bootstrapping pip"
+  python -c "import sys, urllib.request as u; u.urlretrieve('https://bootstrap.pypa.io/get-pip.py', sys.argv[1])" \
+    "${VENV}/get-pip.py"
+  python "${VENV}/get-pip.py" --quiet
+fi
 STAMP="${VENV}/.installed-$(git -C "${REPO_DIR}" rev-parse --short HEAD 2>/dev/null || echo dev)"
 if [[ ! -f "${STAMP}" ]]; then
   if [[ "${ONLINE}" == 0 ]]; then
