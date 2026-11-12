@@ -15,6 +15,10 @@ OUTPUT_DIR="${CWM_OUTPUT_DIR:-${HOME}/runs/cwm}"
 
 # Put the model cache on fast storage if the cluster has it.
 export HF_HOME="${HF_HOME:-${HOME}/.cache/huggingface}"
+# Some images set TRANSFORMERS_CACHE, which transformers prefers over HF_HOME. Keep
+# every library on the same cache so the offline run finds what was downloaded.
+unset TRANSFORMERS_CACHE
+export HF_HUB_CACHE="${HF_HOME}/hub"
 export TOKENIZERS_PARALLELISM=false
 export PYTHONUNBUFFERED=1
 
@@ -60,7 +64,8 @@ if ! python -m pip --version >/dev/null 2>&1; then
     "${VENV}/get-pip.py"
   python "${VENV}/get-pip.py" --quiet
 fi
-STAMP="${VENV}/.installed-$(git -C "${REPO_DIR}" rev-parse --short HEAD 2>/dev/null || echo dev)"
+# Reinstall only when the dependencies change (the install is editable).
+STAMP="${VENV}/.installed-$(sha1sum "${REPO_DIR}/pyproject.toml" | cut -c1-12)"
 if [[ ! -f "${STAMP}" ]]; then
   if [[ "${ONLINE}" == 0 ]]; then
     echo "The project is not installed and pip cannot reach PyPI from this job."
@@ -85,6 +90,10 @@ try:
     from huggingface_hub import snapshot_download
     path = snapshot_download(config.model.name, revision=config.model.revision)
     print("model ready:", path)
+    from transformers import AutoConfig, AutoTokenizer
+    AutoConfig.from_pretrained(config.model.name, revision=config.model.revision, local_files_only=True)
+    AutoTokenizer.from_pretrained(config.model.name, revision=config.model.revision, local_files_only=True)
+    print("model loads offline from", __import__("os").environ["HF_HUB_CACHE"])
     if config.dataset_path is None:
         from evalplus.data import get_human_eval_plus, get_mbpp_plus
         (get_human_eval_plus if config.dataset == "humaneval" else get_mbpp_plus)()
